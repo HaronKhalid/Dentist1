@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.argv[2]) || 3000;
+const base = (process.argv[3] || "").replace(/\/$/, ""); // optional sub-path, e.g. /Dentist1 (mimics GitHub Pages)
 const types = {
   ".html": "text/html; charset=utf-8", ".mjs": "text/javascript", ".js": "text/javascript",
   ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png",
@@ -16,7 +17,8 @@ const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return f
 
 http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
-  if (p.length > 1 && p.endsWith("/")) { res.writeHead(301, { Location: p.slice(0, -1) }); return res.end(); }
+  if (base) { if (p === base) p = base + "/"; if (!p.startsWith(base + "/")) { res.writeHead(404); return res.end(); } p = p.slice(base.length) || "/"; }
+  if (p.length > 1 && p.endsWith("/")) { res.writeHead(301, { Location: base + p.slice(0, -1) }); return res.end(); }
   const rel = p === "/" ? "/index.html" : p;
   const candidates = [rel, rel + ".html"].map((c) => path.join(root, c));
   const file = candidates.find((c) => c.startsWith(root) && isFile(c));
